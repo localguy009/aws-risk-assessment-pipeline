@@ -37,7 +37,7 @@ Wait for both indexes to show **Active** before moving on.
 
 | Setting | Value |
 |---------|-------|
-| Bucket name | `risk-assessment-reports-422017356233` |
+| Bucket name | `risk-assessment-reports-YOUR_ACCOUNT_ID` |
 | Region | `us-east-1` |
 | Object Ownership | ACLs disabled |
 | Block Public Access | All four checkboxes checked |
@@ -74,13 +74,13 @@ Add permissions → Create inline policy → JSON tab
         "dynamodb:UpdateItem",
         "dynamodb:GetItem"
       ],
-      "Resource": "arn:aws:dynamodb:us-east-1:422017356233:table/risk-register"
+      "Resource": "arn:aws:dynamodb:us-east-1:YOUR_ACCOUNT_ID:table/risk-register"
     },
     {
       "Sid": "SNSPublish",
       "Effect": "Allow",
       "Action": ["sns:Publish"],
-      "Resource": "arn:aws:sns:us-east-1:422017356233:risk-pipeline-critical-alerts"
+      "Resource": "arn:aws:sns:us-east-1:YOUR_ACCOUNT_ID:risk-pipeline-critical-alerts"
     },
     {
       "Sid": "EC2DescribeTags",
@@ -125,8 +125,8 @@ Add permissions → Create inline policy → JSON tab
         "dynamodb:Query"
       ],
       "Resource": [
-        "arn:aws:dynamodb:us-east-1:422017356233:table/risk-register",
-        "arn:aws:dynamodb:us-east-1:422017356233:table/risk-register/index/*"
+        "arn:aws:dynamodb:us-east-1:YOUR_ACCOUNT_ID:table/risk-register",
+        "arn:aws:dynamodb:us-east-1:YOUR_ACCOUNT_ID:table/risk-register/index/*"
       ]
     },
     {
@@ -138,8 +138,8 @@ Add permissions → Create inline policy → JSON tab
         "s3:ListBucket"
       ],
       "Resource": [
-        "arn:aws:s3:::risk-assessment-reports-422017356233",
-        "arn:aws:s3:::risk-assessment-reports-422017356233/*"
+        "arn:aws:s3:::risk-assessment-reports-YOUR_ACCOUNT_ID",
+        "arn:aws:s3:::risk-assessment-reports-YOUR_ACCOUNT_ID/*"
       ]
     }
   ]
@@ -161,7 +161,7 @@ Policy name: `risk-pipeline-reporter-policy`
 | Display name | `Risk Pipeline Alerts` |
 
 **Subscription** — after topic is created:
-Create subscription → Protocol: Email → Endpoint: `gunnarstahl007@gmail.com`
+Create subscription → Protocol: Email → Endpoint: `YOUR_EMAIL`
 
 Confirm the subscription by clicking the link in the confirmation email.
 
@@ -184,7 +184,7 @@ Configuration tab → Environment variables → Edit → Add:
 | Key | Value |
 |-----|-------|
 | `DYNAMODB_TABLE_NAME` | `risk-register` |
-| `SNS_TOPIC_ARN` | `arn:aws:sns:us-east-1:422017356233:risk-pipeline-critical-alerts` |
+| `SNS_TOPIC_ARN` | `arn:aws:sns:us-east-1:YOUR_ACCOUNT_ID:risk-pipeline-critical-alerts` |
 | `CRITICAL_SCORE_THRESHOLD` | `9.0` |
 
 **After creation — Timeout:**
@@ -221,7 +221,7 @@ Configuration tab → Environment variables → Edit → Add:
 | Key | Value |
 |-----|-------|
 | `DYNAMODB_TABLE_NAME` | `risk-register` |
-| `S3_REPORT_BUCKET` | `risk-assessment-reports-422017356233` |
+| `S3_REPORT_BUCKET` | `risk-assessment-reports-YOUR_ACCOUNT_ID` |
 
 **After creation — Timeout:**
 Configuration tab → General configuration → Edit → Timeout: **60 seconds**
@@ -307,12 +307,12 @@ Lambda → risk-pipeline-processor → Test tab → create event named `sample-f
   "source": "aws.securityhub",
   "detail-type": "Security Hub Findings - Imported",
   "detail": {
-    "id": "inspector2/us-east-1/422017356233/finding/test-cve-2024-12345",
+    "id": "inspector2/us-east-1/YOUR_ACCOUNT_ID/finding/test-cve-2024-12345",
     "inspectorScore": 9.1,
     "resources": [
       {
         "type": "AWS_EC2_INSTANCE",
-        "id": "arn:aws:ec2:us-east-1:422017356233:instance/i-0test1234567890ab"
+        "id": "arn:aws:ec2:us-east-1:YOUR_ACCOUNT_ID:instance/i-0test1234567890ab"
       }
     ],
     "packageVulnerabilityDetails": {
@@ -340,12 +340,12 @@ Lambda → risk-pipeline-processor → Test tab → create event named `sample-f
 
 **Test the real automation:**
 
-Go to Security Hub → Findings → Add filter: Product name = Inspector → click any finding → change Workflow status to Notified then back to New. Watch CloudWatch → `/aws/lambda/risk-pipeline-processor` for log entries.
+Go to Security Hub → CSPM → Findings → Add filter: Product name = Inspector → click any finding → change Workflow status to Notified then back to New. This re-sends the finding through EventBridge and triggers the processor Lambda. Watch CloudWatch → `/aws/lambda/risk-pipeline-processor` for log entries.
 
 **Generate the report manually:**
 
 Lambda → risk-pipeline-reporter → Test tab → event body `{}` → click Test.
-Download from S3 → risk-assessment-reports-422017356233 → reports/YYYY-MM-DD/risk-report.html
+Download from S3 → risk-assessment-reports-YOUR_ACCOUNT_ID → reports/YYYY-MM-DD/risk-report.html
 
 **Troubleshooting tips:**
 - If Lambda fires but DynamoDB is empty: check CloudWatch logs for the FULL EVENT print line to inspect the raw event format
@@ -359,7 +359,7 @@ Download from S3 → risk-assessment-reports-422017356233 → reports/YYYY-MM-DD
 | Resource | Name |
 |----------|------|
 | DynamoDB table | `risk-register` |
-| S3 bucket | `risk-assessment-reports-422017356233` |
+| S3 bucket | `risk-assessment-reports-YOUR_ACCOUNT_ID` |
 | IAM role | `risk-pipeline-processor-role` |
 | IAM role | `risk-pipeline-reporter-role` |
 | SNS topic | `risk-pipeline-critical-alerts` |
@@ -370,4 +370,4 @@ Download from S3 → risk-assessment-reports-422017356233 → reports/YYYY-MM-DD
 
 ---
 
-*AWS region: us-east-1 | Account: 422017356233 | NIST SP 800-53 Rev 5 — RA-3, RA-5*
+*AWS region: us-east-1 | Account: YOUR_ACCOUNT_ID | NIST SP 800-53 Rev 5 — RA-3, RA-5*
