@@ -3,7 +3,7 @@
 
 A fully automated vulnerability management pipeline built on AWS. Inspector scans EC2 instances and container images for known CVEs → findings flow into Security Hub → Lambda deduplicates, enriches, and scores each finding → results are written to a structured risk register in DynamoDB → a static HTML report is generated and stored in S3.
 
-This is not just a vulnerability scanner. It is a complete risk prioritization and evidence collection workflow — the kind of system a real vulnerability management program runs on.
+This is not just a vulnerability scanner. It is a complete risk prioritization and evidence collection workflow
 
 ---
 
@@ -247,12 +247,7 @@ An auditor asking *"how do you know what your vulnerabilities are and what you d
 - Audit-ready evidence collection and retention
 - Practical GRC engineering — not just documentation
 
-### GitHub Description
-> Automated vulnerability management pipeline built on AWS. Inspector → Security Hub → Lambda scoring → DynamoDB risk register → HTML report. Implements NIST SP 800-53 RA-3 and RA-5 with full audit evidence generation.
 
-### LinkedIn Summary
-> Built an end-to-end vulnerability management pipeline on AWS that automatically scans EC2 and container workloads, scores findings using a multi-factor risk model, maintains a structured risk register in DynamoDB, and generates daily HTML reports. Designed to satisfy NIST SP 800-53 RA-3 and RA-5 with complete audit evidence — no manual steps between detection and documentation.
 
----
 
-*Built as part of a cloud GRC engineering portfolio. NIST SP 800-53 Rev 5.*
+
