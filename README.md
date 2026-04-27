@@ -1,7 +1,7 @@
 # AWS Automated Risk Assessment Pipeline
 ### NIST SP 800-53 | Controls: RA-3, RA-5
 
-A fully automated vulnerability management pipeline built on AWS. Inspector scans EC2 instances and container images for known CVEs → findings flow into Security Hub → Lambda deduplicates, enriches, and scores each finding → results are written to a structured risk register in DynamoDB → a static HTML report is generated and published to S3.
+A fully automated vulnerability management pipeline built on AWS. Inspector scans EC2 instances and container images for known CVEs → findings flow into Security Hub → Lambda deduplicates, enriches, and scores each finding → results are written to a structured risk register in DynamoDB → a static HTML report is generated and stored in S3.
 
 This is not just a vulnerability scanner. It is a complete risk prioritization and evidence collection workflow — the kind of system a real vulnerability management program runs on.
 
@@ -30,7 +30,7 @@ AWS Inspector continuously monitors EC2 instances and ECR container images for s
 Inspector pushes all findings into AWS Security Hub using the Amazon Security Finding Format (ASFF). Security Hub acts as the normalized, centralized view of all findings across the environment. This is where a security analyst would triage and suppress false positives.
 
 ### Step 3 — Trigger
-An EventBridge rule watches for Security Hub findings with a source of `aws.inspector2`. When a new or updated finding arrives, EventBridge fires and invokes the Lambda function. This happens in near real-time with no polling required.
+An EventBridge rule watches for Security Hub findings from Inspector. When a new finding arrives, EventBridge fires and invokes the processor Lambda function in near real-time with no polling required.
 
 ### Step 4 — Process
 Lambda performs three operations:
@@ -40,13 +40,13 @@ Lambda performs three operations:
 - **Scoring** — applies the risk scoring model to produce a final numeric risk score from 0–10.
 
 ### Step 5 — Store
-Lambda writes the enriched, scored finding to DynamoDB. Each record in DynamoDB represents one entry in the risk register. Records are never deleted — when a vulnerability is remediated, the status field is updated and a remediation timestamp is added. This preserves audit history.
+Lambda writes the enriched, scored finding to DynamoDB. Each record represents one entry in the risk register. Records are never deleted — when a vulnerability is remediated, the status field is updated and a remediation timestamp is added. This preserves full audit history.
 
 ### Step 6 — Report
-A second Lambda function runs on a scheduled EventBridge rule (e.g., daily at 06:00 UTC). It queries DynamoDB for all open findings, generates a static HTML report, and uploads it to an S3 bucket configured for static website hosting. The report is publicly accessible via a CloudFront URL or S3 website endpoint.
+A second Lambda function runs on a scheduled EventBridge rule daily at 06:00 UTC. It queries DynamoDB for all open findings, generates a static HTML report, and uploads it to S3. The report is downloaded directly from S3 and opened locally.
 
 ### Step 7 — Alert
-If the Lambda processing function encounters a finding with a final risk score above 9.0, it publishes a message to an SNS topic. That topic can deliver email notifications, Slack messages via webhook, or trigger additional automation.
+If a finding scores above 9.0, Lambda publishes a message to an SNS topic which delivers an email notification to the configured recipient.
 
 ---
 
@@ -69,14 +69,13 @@ If the Lambda processing function encounters a finding with a final risk score a
 |---------|-----------------|
 | **AWS Inspector** | Continuous CVE scanning for EC2 and ECR container images |
 | **AWS Security Hub** | Finding aggregation and normalization into ASFF format |
-| **Amazon EventBridge** | Event-driven trigger on new Security Hub findings |
+| **Amazon EventBridge** | Event-driven trigger on new findings and daily report schedule |
 | **AWS Lambda** | Deduplication, enrichment, scoring, and report generation |
 | **Amazon DynamoDB** | Persistent risk register with full finding history |
-| **Amazon S3** | Static HTML report hosting |
-| **Amazon SNS** | Critical finding alert delivery |
+| **Amazon S3** | HTML report storage (downloaded and viewed locally) |
+| **Amazon SNS** | Critical finding email alert delivery |
 | **AWS IAM** | Least-privilege roles for each service |
 | **Amazon CloudWatch** | Lambda execution logs and error monitoring |
-| **AWS CloudFormation / Terraform** | Infrastructure as Code for full environment deployment |
 
 ---
 
@@ -146,10 +145,10 @@ Each DynamoDB record represents one vulnerability finding on one resource.
   "risk_score": 9.37,
   "risk_level": "CRITICAL",
   "status": "OPEN",
-  "first_seen": "2025-04-26T08:14:00Z",
-  "last_updated": "2025-04-26T08:14:00Z",
+  "first_seen": "2026-04-27T08:14:00Z",
+  "last_updated": "2026-04-27T08:14:00Z",
   "remediated_at": null,
-  "sla_due_date": "2025-04-27T08:14:00Z",
+  "sla_due_date": "2026-04-28T08:14:00Z",
   "alert_sent": true
 }
 ```
@@ -158,15 +157,13 @@ Each DynamoDB record represents one vulnerability finding on one resource.
 
 ## Report Output
 
-The HTML report generated by the report Lambda includes:
+The HTML report generated by the reporter Lambda includes:
 
 - **Executive summary** — total open findings by risk level (Critical / High / Medium / Low)
 - **SLA breach tracker** — findings past their remediation due date
-- **Top 10 riskiest findings** — sorted by risk score
-- **Full findings table** — all open findings with CVE ID, resource, score, status, and SLA date
-- **Trend section** — findings opened vs. closed over the last 30 days (from DynamoDB scan)
+- **Full findings table** — all open findings sorted by risk score, with CVE ID, resource, package, score, and SLA date
 
-The report is regenerated daily and uploaded to S3. Each version is preserved using S3 versioning, creating a historical archive of the risk posture over time.
+The report is regenerated daily and uploaded to S3 with versioning enabled. Each report is preserved as a dated snapshot, creating a historical archive of the environment's risk posture over time.
 
 ---
 
@@ -174,18 +171,6 @@ The report is regenerated daily and uploaded to S3. Each version is preserved us
 
 ```
 aws-risk-assessment-pipeline/
-│
-├── terraform/
-│   ├── main.tf                  # Root module
-│   ├── variables.tf
-│   ├── outputs.tf
-│   ├── inspector.tf             # Inspector enablement
-│   ├── securityhub.tf           # Security Hub configuration
-│   ├── eventbridge.tf           # EventBridge rules
-│   ├── lambda.tf                # Lambda functions + IAM roles
-│   ├── dynamodb.tf              # Risk register table
-│   ├── s3.tf                    # Report bucket
-│   └── sns.tf                   # Alert topic
 │
 ├── lambda/
 │   ├── processor/
@@ -196,12 +181,9 @@ aws-risk-assessment-pipeline/
 │   │
 │   └── reporter/
 │       ├── handler.py           # Report generator
-│       ├── template.html        # HTML report template
 │       └── requirements.txt
 │
 ├── tests/
-│   ├── test_scorer.py
-│   ├── test_enricher.py
 │   └── sample_finding.json      # Sample ASFF finding for local testing
 │
 ├── docs/
@@ -214,34 +196,27 @@ aws-risk-assessment-pipeline/
 
 ## Deployment
 
+All AWS infrastructure is configured manually via the AWS Management Console. No Infrastructure as Code tooling is required to deploy this project.
+
 ### Prerequisites
-- AWS account with permissions to enable Inspector and Security Hub
-- Terraform >= 1.5
-- Python 3.11
-- AWS CLI configured with appropriate credentials
+- AWS account with Inspector v2 and Security Hub enabled
+- Python 3.11 for Lambda function code
+- AWS CLI configured (optional, for testing Lambda invocations locally)
 
-### Steps
+### Build Order
 
-```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/aws-risk-assessment-pipeline.git
-cd aws-risk-assessment-pipeline
+| Step | Service | What You Configure |
+|------|---------|-------------------|
+| 1 | DynamoDB | Create `risk-register` table with `finding_id` partition key |
+| 2 | S3 | Create report bucket with versioning and encryption enabled |
+| 3 | IAM | Create processor and reporter roles with least-privilege policies |
+| 4 | SNS | Create critical alerts topic, add email subscription |
+| 5 | Lambda | Deploy processor function with DynamoDB + SNS permissions |
+| 6 | Lambda | Deploy reporter function with DynamoDB + S3 permissions |
+| 7 | EventBridge | Create finding rule — triggers processor on new Inspector findings |
+| 8 | EventBridge | Create daily schedule — triggers reporter at 06:00 UTC |
 
-# Initialize Terraform
-cd terraform
-terraform init
-
-# Review the plan
-terraform plan
-
-# Deploy
-terraform apply
-
-# Inspector and Security Hub will begin generating findings within minutes
-# The first HTML report will be generated on the next scheduled run
-```
-
-
+---
 
 ## Evidence and Audit Value
 
@@ -252,7 +227,7 @@ This pipeline produces the following auditable artifacts:
 | Raw findings (ASFF) | Security Hub | Source of truth for all vulnerability data |
 | Scored risk register | DynamoDB | Documents risk assessment decisions and scores |
 | Remediation history | DynamoDB (`remediated_at` field) | Proves vulnerabilities were addressed |
-| HTML risk report | S3 (versioned) | Point-in-time snapshot of risk posture |
+| HTML risk report | S3 (versioned, downloaded locally) | Point-in-time snapshot of risk posture |
 | Lambda execution logs | CloudWatch Logs | Proves automation ran and when |
 | SLA breach records | DynamoDB | Documents overdue remediation |
 | Alert history | SNS / CloudWatch | Proves critical findings triggered notification |
@@ -265,13 +240,19 @@ An auditor asking *"how do you know what your vulnerabilities are and what you d
 
 ### What This Demonstrates
 
-- Ability to translate NIST 800-53 controls into working technical workflows
-- Understanding of AWS security services and how they integrate
+- Ability to translate NIST 800-53 controls into working technical cloud workflows
+- Hands-on knowledge of AWS security services and how they integrate
 - Event-driven architecture design
 - Risk quantification beyond raw CVSS scores
 - Audit-ready evidence collection and retention
-- Infrastructure as Code for repeatable deployment
+- Practical GRC engineering — not just documentation
 
+### GitHub Description
+> Automated vulnerability management pipeline built on AWS. Inspector → Security Hub → Lambda scoring → DynamoDB risk register → HTML report. Implements NIST SP 800-53 RA-3 and RA-5 with full audit evidence generation.
 
+### LinkedIn Summary
+> Built an end-to-end vulnerability management pipeline on AWS that automatically scans EC2 and container workloads, scores findings using a multi-factor risk model, maintains a structured risk register in DynamoDB, and generates daily HTML reports. Designed to satisfy NIST SP 800-53 RA-3 and RA-5 with complete audit evidence — no manual steps between detection and documentation.
 
+---
 
+*Built as part of a cloud GRC engineering portfolio. NIST SP 800-53 Rev 5.*
