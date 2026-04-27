@@ -8,8 +8,6 @@ This is not just a vulnerability scanner. It is a complete risk prioritization a
 ---
 
 ## Table of Contents
-
-- [Architecture Overview](#architecture-overview)
 - [Pipeline Flow](#pipeline-flow)
 - [NIST 800-53 Control Mapping](#nist-800-53-control-mapping)
 - [AWS Services Used](#aws-services-used)
@@ -20,46 +18,6 @@ This is not just a vulnerability scanner. It is a complete risk prioritization a
 - [Deployment](#deployment)
 - [Evidence and Audit Value](#evidence-and-audit-value)
 - [Portfolio Context](#portfolio-context)
-
----
-
-## Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        AWS ENVIRONMENT                              │
-│                                                                     │
-│   ┌──────────┐     ┌──────────────┐     ┌────────────────────┐    │
-│   │   EC2    │────▶│   AWS        │────▶│   AWS Security     │    │
-│   │Instances │     │  Inspector   │     │       Hub          │    │
-│   └──────────┘     └──────────────┘     └────────┬───────────┘    │
-│                                                   │                 │
-│   ┌──────────┐     ┌──────────────┐              │ ASFF Finding   │
-│   │Container │────▶│   AWS        │──────────────┘                │
-│   │  Images  │     │  Inspector   │                                │
-│   └──────────┘     └──────────────┘                                │
-│                                                                     │
-│                          ┌────────────────────┐                    │
-│                          │    EventBridge     │                    │
-│                          │  (Finding Rule)    │                    │
-│                          └────────┬───────────┘                    │
-│                                   │ Triggers                       │
-│                          ┌────────▼───────────┐                    │
-│                          │      Lambda        │                    │
-│                          │  • Deduplicate     │                    │
-│                          │  • Enrich          │                    │
-│                          │  • Score           │                    │
-│                          └────────┬───────────┘                    │
-│                                   │                                 │
-│              ┌────────────────────┼────────────────────┐           │
-│              │                    │                    │           │
-│   ┌──────────▼──────┐   ┌────────▼───────┐   ┌───────▼───────┐   │
-│   │    DynamoDB     │   │   S3 Bucket    │   │     SNS        │   │
-│   │  Risk Register  │   │ HTML Report    │   │ Critical Alert │   │
-│   └─────────────────┘   └───────────────┘   └───────────────┘   │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
 
 ---
 
@@ -283,17 +241,7 @@ terraform apply
 # The first HTML report will be generated on the next scheduled run
 ```
 
-### Estimated AWS Cost (us-east-1)
-| Service | Estimated Monthly Cost |
-|---------|----------------------|
-| Inspector (10 EC2 instances) | ~$15 |
-| Lambda (low invocation volume) | < $1 |
-| DynamoDB (on-demand) | < $1 |
-| S3 (report storage) | < $1 |
-| Security Hub | ~$0.0010 per finding |
-| **Total** | **~$17–20/month** |
 
----
 
 ## Evidence and Audit Value
 
@@ -324,12 +272,6 @@ An auditor asking *"how do you know what your vulnerabilities are and what you d
 - Audit-ready evidence collection and retention
 - Infrastructure as Code for repeatable deployment
 
-### GitHub Description
-> Automated vulnerability management pipeline built on AWS. Inspector → Security Hub → Lambda scoring → DynamoDB risk register → HTML report. Implements NIST SP 800-53 RA-3 and RA-5 with full audit evidence generation.
 
-### LinkedIn Summary
-> Built an end-to-end vulnerability management pipeline on AWS that automatically scans EC2 and container workloads, scores findings using a multi-factor risk model, maintains a structured risk register in DynamoDB, and generates daily HTML reports for stakeholders. Designed to satisfy NIST SP 800-53 RA-3 and RA-5 with complete audit evidence — no manual steps between detection and documentation.
 
----
 
-*Built as part of a cloud GRC engineering portfolio. NIST SP 800-53 Rev 5.*
