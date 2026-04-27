@@ -72,7 +72,7 @@ Risk Score = (CVSS × 0.5) + (Asset Criticality × 0.3) + (Exposure × 0.2)
 
 ## Report Output
 
-Daily HTML report includes: executive summary (counts by severity), SLA breach tracker, and full findings table sorted by risk score. Versioned in S3 — each report is a dated snapshot of the environment's risk posture.
+Daily HTML report includes: executive summary (counts by severity), SLA breach tracker, and full findings table sorted by risk score. Uploaded to the same S3 bucket at `reports/YYYY-MM-DD/risk-report.html` — S3 versioning is enabled so overwritten reports are preserved as version history.
 
 ---
 
