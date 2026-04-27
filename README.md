@@ -9,19 +9,6 @@ An auditor asking *"how do you know what your vulnerabilities are and what you d
 
 ---
 
-## Table of Contents
-- [Pipeline Flow](#pipeline-flow)
-- [NIST 800-53 Control Mapping](#nist-800-53-control-mapping)
-- [AWS Services Used](#aws-services-used)
-- [Risk Scoring Model](#risk-scoring-model)
-- [Risk Register Schema](#risk-register-schema)
-- [Report Output](#report-output)
-- [Project Structure](#project-structure)
-- [Deployment](#deployment)
-
-
----
-
 ## Pipeline Flow
 
 ### Step 1 — Scan
