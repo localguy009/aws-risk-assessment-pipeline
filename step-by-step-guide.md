@@ -369,5 +369,3 @@ Download from S3 → risk-assessment-reports-YOUR_ACCOUNT_ID → reports/YYYY-MM
 | EventBridge rule | `risk-pipeline-daily-report` |
 
 ---
-
-*AWS region: us-east-1 | Account: YOUR_ACCOUNT_ID | NIST SP 800-53 Rev 5 — RA-3, RA-5*
