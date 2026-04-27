@@ -3,7 +3,9 @@
 
 A fully automated vulnerability management pipeline built on AWS. Inspector scans EC2 instances and container images for known CVEs → findings flow into Security Hub → Lambda deduplicates, enriches, and scores each finding → results are written to a structured risk register in DynamoDB → a static HTML report is generated and stored in S3.
 
-This is not just a vulnerability scanner. It is a complete risk prioritization and evidence collection workflow
+An auditor asking *"how do you know what your vulnerabilities are and what you did about them?"* can be answered entirely from the outputs of this pipeline.
+
+
 
 ---
 
@@ -16,8 +18,7 @@ This is not just a vulnerability scanner. It is a complete risk prioritization a
 - [Report Output](#report-output)
 - [Project Structure](#project-structure)
 - [Deployment](#deployment)
-- [Evidence and Audit Value](#evidence-and-audit-value)
-- [Portfolio Context](#portfolio-context)
+
 
 ---
 
@@ -196,7 +197,7 @@ aws-risk-assessment-pipeline/
 
 ## Deployment
 
-All AWS infrastructure is configured manually via the AWS Management Console. No Infrastructure as Code tooling is required to deploy this project.
+All AWS infrastructure is configured manually via the AWS Management Console.
 
 ### Prerequisites
 - AWS account with Inspector v2 and Security Hub enabled
@@ -231,21 +232,6 @@ This pipeline produces the following auditable artifacts:
 | Lambda execution logs | CloudWatch Logs | Proves automation ran and when |
 | SLA breach records | DynamoDB | Documents overdue remediation |
 | Alert history | SNS / CloudWatch | Proves critical findings triggered notification |
-
-An auditor asking *"how do you know what your vulnerabilities are and what you did about them?"* can be answered entirely from the outputs of this pipeline.
-
----
-
-## Portfolio Context
-
-### What This Demonstrates
-
-- Ability to translate NIST 800-53 controls into working technical cloud workflows
-- Hands-on knowledge of AWS security services and how they integrate
-- Event-driven architecture design
-- Risk quantification beyond raw CVSS scores
-- Audit-ready evidence collection and retention
-- Practical GRC engineering — not just documentation
 
 
 
