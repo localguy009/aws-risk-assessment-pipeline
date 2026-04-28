@@ -5,18 +5,6 @@ Automated vulnerability management pipeline on AWS. Inspector scans EC2 and cont
 
 An auditor asking *"how do you know what your vulnerabilities are and what you did about them?"* can be answered entirely from the outputs of this pipeline.
 
----
-
-## Pipeline Flow
-
-```
-Inspector → Security Hub → EventBridge → Lambda Processor → DynamoDB (risk register)
-                                                           → SNS (critical alerts, score ≥ 9.0)
-
-EventBridge (daily 06:00 UTC) → Lambda Reporter → S3 (HTML report)
-```
-
-Lambda performs three operations per finding: **deduplication** (no duplicate records), **enrichment** (EC2 tags → asset criticality), **scoring** (custom risk model).
 
 ---
 
